@@ -17,14 +17,7 @@ img_pre="https://i.4cdn.org/${board}/"
 tmp_dir="/tmp/paperscraper"
 catalog_json="$tmp_dir/catalog.json"
 threads_json="$tmp_dir/threads.json"
-
-threadfile="$tmp_dir/threads.txt"
-viewfile="$tmp_dir/catalog.txt"
-dlfile="$tmp_dir/dl.txt"
-
-if [ ! -d "$tmp_dir" ]; then
-    mkdir "$tmp_dir"
-fi
+[ -d "$tmp_dir" ] || mkdir "$tmp_dir"
 
 curl_json(){
     curl -sL "$catalog_url" -o "$catalog_json"
@@ -35,52 +28,66 @@ curl_json(){
 # TODO Add option to filter for image resolution
 curl_thread(){
     thread_dir="$tmp_dir/threads"
-
     [ -d "$thread_dir" ] || mkdir "$thread_dir" 
-    # Gets thread json data
-    for arg in $@; do
-        url="$thread_pre$arg.json"
-        json_file="$thread_dir/$arg.json"
 
-        # Download the thread's json data
-        curl "$url" -o "$json_file"
-
-        # Extract data relevant to images into a file
-        paste <(jq '.posts[].tim' "$json_file" | sed 's/\s*//g') \
-              <(jq '.posts[].ext' "$json_file" | sed 's/\"//g') \
-              | sed '/null/d' | tr -d '\t' > "$dlfile"
-        sed -i 's|^|https://i.4cdn.org/'$board'/|' "$dlfile"
-    done
-    
     # Use this directory if not set
-    if [ -z "$download_dir" ]; then
-        download_dir="$HOME/Downloads/paperscraper"
+    [ -z "$download_dir" ] && download_dir="$HOME/Downloads/paperscraper"
+    [ -d "$download_dir" ] || mkdir -pv "$download_dir"
+    download_dir=$(echo $download_dir | sed 's:/*$::g')
+
+    # Gets thread json data
+    url="$thread_pre$thread_number.json"
+    json_file="$thread_dir/$thread_number.json"
+
+    # Download the thread's json data
+    if [ ! -f "$json_file" ]; then
+        curl "$url" -o "$json_file"
     fi
-    # If download directory does not exist, make it
-    [ -d "$download_dir" ] || mkdir -p "$download_dir"
+
+    if [ ! -z $min_width ]; then
+        minw=$(jq --arg minw "$min_width" -c '.posts[].w >= ($minw | tonumber)' $json_file)
+    fi
+    if [ ! -z $max_width ]; then
+        maxw=$(jq --arg maxw "$max_width" -c '.posts[].w <= ($maxw | tonumber)' $json_file)
+    fi
+    if [ ! -z $min_height ]; then
+        minh=$(jq --arg minh "$min_height" -c '.posts[].h >= ($minh | tonumber)' $json_file)
+    fi
+    if [ ! -z $max_height ]; then
+        maxh=$(jq --arg maxh "$max_height" -c '.posts[].h <= ($maxh | tonumber)' $json_file)
+    fi
+
+    tim=$(jq '.posts[].tim' "$json_file" | sed 's/\s*//g')
+    ext=$(jq '.posts[].ext' "$json_file" | sed 's/\"//g')
+    w=$(jq '.posts[].w' "$json_file")
+    h=$(jq '.posts[].h' "$json_file")
+
     # Download each file from the list
     while read line
     do
         file_base=$(echo "$line" | cut -d '/' -f 5)
-        echo "$download_dir/$file_base"
-        curl -# "$line" -o "$download_dir/$file_base"
-    done < "$dlfile"
+        filename="$download_dir/$file_base"
+        echo "$filename"
+        [ -f "$filename" ] || curl -# "$line" -o "$filename"
+    done <  <(paste <(echo $minw | tr ' ' '\n')\
+            <(echo $maxw | tr ' ' '\n')\
+            <(echo $minh | tr ' ' '\n')\
+            <(echo $maxh | tr ' ' '\n')\
+            <(echo "$tim" | tr ' ' '\n')\
+            <(echo "$ext" | tr ' ' '\n')\
+            <(echo "$w" | tr ' ' '\n')\
+            <(echo "$h" | tr ' ' '\n')\
+            | sed '/null/d' | sed '/false/d'\
+            | cut -f5,6 | sed 's/\s*//g' | sed 's|^|https://i.4cdn.org/'$board'/|')
 }
 
 curl_page(){
-    for arg in $@; do
-        if [ ! -f $catalog_json ]; then
-            curl_json
-        fi
+    [ -f $catalog_json ] || curl_json
 
-        (jq '.['$arg'].threads[].no' $catalog_json) > threadfile
-
-        while read line 
-        do
-            curl_thread $line
-        done < threadfile
-
-    done
+    while read line 
+    do
+        curl_thread $line
+    done < <(jq '.['$page_number'].threads[].no' $catalog_json)
 }
 
 show_thread_list(){
@@ -89,47 +96,57 @@ show_thread_list(){
     fi
 
     numbers=$(jq '.[].threads[] | .no' $catalog_json)
-    subjects=$(jq '.[].threads[].sub' $catalog_json)
-    comments=$(jq '.[].threads[].com' $catalog_json)
+    subjects=$(jq '.[].threads[].sub' $catalog_json | cut -c -50)
+    comments=$(jq '.[].threads[].com' $catalog_json | cut -c -50)
     img_replies=$(jq '.[].threads[].images' $catalog_json)
 
-    paste <(jq '.[] | .threads[] | .no' $catalog_json) \
-          <(jq '.[].threads[].sub' $catalog_json | cut -c -50) \
-          <(jq '.[].threads[].com' $catalog_json | cut -c -50) \
-          <(jq '.[].threads[].images' $catalog_json) > $viewfile
-    sed -i 's/\"//g' $viewfile
-    column -ts $'\t' $viewfile
+    result=$(paste <(echo "$numbers") <(echo "$subjects") <(echo "$comments") <(echo "$img_replies") | column -ts $'\t')
+    echo "$result"
 }
 
 show_usage(){
 cat<<USAGE
 Usage $0
-      -l (show list of threads), 
-      -u (update catalog and threads), 
-      -d <specify directory for files>, 
+      -l [show list of threads], 
+      -u [update catalog and threads], 
+      -d <specify directory for downloaded files>, 
       -p <specify page to download>,
       -t <thread number to download>, 
+      -w <minimum width for wallpaper>,
+      -h <minimum height for wallpaper>,
+      -x <maximum width for wallpaper>,
+      -y <maximum height for wallpaper>,
       -h [help]
 USAGE
 }
 
 # TODO
 # Should probably go back to using while [ "$#" -gt 0 ]; do .. and shift
-# to get long options and flexibility ,but I just wanted to try getopts out
-while getopts ":p:t:d:ulh" opt; do
-    case ${opt} in
-        h) show_usage ;;
-        u) curl_json ;; # update
-        l) show_thread_list ;; # thread list
-        t) curl_thread $OPTARG ;;
-        p) curl_page $OPTARG ;;
-        d) download_dir=$OPTARG ;;
+# to get long options and flexibility, but I just wanted to try getopts out
+while getopts ":d:w:h:x:y:t:p:ul" opt; do
+    case "${opt}" in
+        d) declare -g download_dir="${OPTARG}" ;;
+        w) declare -ig min_width="${OPTARG}" ;;
+        h) declare -ig min_height="${OPTARG}" ;;
+        x) declare -ig max_width="${OPTARG}" ;;
+        y) declare -ig max_height="${OPTARG}" ;;
+        t) declare -ig thread_number="${OPTARG}" ;;
+        p) declare -ig page_number="${OPTARG}" ;;
+        u) curl_json ;; 
+        l) show_thread_list ;; 
         \?) show_usage; exit 1 ;;
         :) echo "Option $OPTARG requires an argument" 1>&2 ;;
     esac
 done
 
-
 [[ $OPTIND == 1 ]] && show_usage; 
 shift $((OPTIND-1))
+
+if [ ! -z $thread_number ]; then
+    curl_thread "$thread_number"
+fi
+
+if [ ! -z $page_number ]; then
+    curl_page "$page_number"
+fi
 
