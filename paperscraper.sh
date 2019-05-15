@@ -7,32 +7,39 @@ if ! [ -x "$(command -v curl)" ]; then
     printf "Error: curl is not installed.\n" >&2
 fi
 
-board="wg"
-catalog_url="https://a.4cdn.org/${board}/catalog.json"
-threads_url="https://a.4cdn.org/${board}/threads.json"
-page_pre="https://a.4cdn.org/${board}/"
-thread_pre="https://a.4cdn.org/${board}/thread/"
-img_pre="https://i.4cdn.org/${board}/"
+set_board(){
+    if [ ! -z "$1" ]; then
+        declare -g board="$1"
+    else
+        declare -g board="wg" 
+    fi
 
-tmp_dir="/tmp/paperscraper"
-catalog_json="$tmp_dir/catalog.json"
-threads_json="$tmp_dir/threads.json"
-[ -d "$tmp_dir" ] || mkdir "$tmp_dir"
+    declare -g catalog_url="https://a.4cdn.org/${board}/catalog.json"
+    declare -g threads_url="https://a.4cdn.org/${board}/threads.json"
+    declare -g page_pre="https://a.4cdn.org/${board}/"
+    declare -g thread_pre="https://a.4cdn.org/${board}/thread/"
+    declare -g img_pre="https://i.4cdn.org/${board}/"
+
+    declare -g tmp_dir="/tmp/paperscraper"
+    [ -d "$tmp_dir" ] || mkdir "$tmp_dir"
+    declare -g catalog_json="${tmp_dir}/${board}/catalog.json"
+    declare -g threads_json="${tmp_dir}/${board}/threads.json"
+
+    declare -g thread_dir="${tmp_dir}/${board}/threads"
+    [ -d "$thread_dir" ] || mkdir -p "$thread_dir" 
+}
 
 curl_json(){
-    curl -sL "$catalog_url" -o "$catalog_json"
-    curl -sL "$threads_url" -o "$threads_json"
+    curl -L "$catalog_url" -o "$catalog_json"
+    curl -L "$threads_url" -o "$threads_json"
 }
 
 # TODO Clean up this function 
 # TODO Add option to filter for image resolution
 curl_thread(){
-    thread_dir="$tmp_dir/threads"
-    [ -d "$thread_dir" ] || mkdir "$thread_dir" 
-
     # Use this directory if not set
     [ -z "$download_dir" ] && download_dir="$HOME/Downloads/paperscraper"
-    [ -d "$download_dir" ] || mkdir -pv "$download_dir"
+    [ -d "$download_dir" ] || mkdir -p "$download_dir"
     download_dir=$(echo $download_dir | sed 's:/*$::g')
 
     # Gets thread json data
@@ -78,7 +85,7 @@ curl_thread(){
             <(echo "$w" | tr ' ' '\n')\
             <(echo "$h" | tr ' ' '\n')\
             | sed '/null/d' | sed '/false/d'\
-            | cut -f5,6 | sed 's/\s*//g' | sed 's|^|https://i.4cdn.org/'$board'/|')
+            | cut -f5,6 | sed 's/\s*//g' | sed 's|^|https://i.4cdn.org/'${board}'/|')
 }
 
 curl_page(){
@@ -94,6 +101,7 @@ show_thread_list(){
     if [ ! -f $threads_json ] || [ ! -f $catalog_json ]; then
         curl_json
     fi
+    echo $threads_json
 
     numbers=$(jq '.[].threads[] | .no' $catalog_json)
     subjects=$(jq '.[].threads[].sub' $catalog_json | cut -c -50)
@@ -107,15 +115,16 @@ show_thread_list(){
 show_usage(){
 cat<<USAGE
 Usage $0
-      -l [show list of threads], 
-      -u [update catalog and threads], 
-      -d <specify directory for downloaded files>, 
-      -p <specify page to download>,
-      -t <thread number to download>, 
-      -w <minimum width for wallpaper>,
-      -h <minimum height for wallpaper>,
-      -x <maximum width for wallpaper>,
-      -y <maximum height for wallpaper>,
+      -l <show list of threads> 
+      -u <update catalog and threads> 
+      -p [arg]: <specify page to download>
+      -t [arg]: <thread number to download> 
+      -d [optional arg]: <specify directory for downloaded files (defaults to ~/Downloads/paperscraper)> 
+      -b [optional arg]: <specify image board (defaults to /wg/)>
+      -w [optional arg]: <minimum width for image>
+      -h [optional arg]: <minimum height for image>
+      -x [optional arg]: <maximum width for image>
+      -y [optional arg]: <maximum height for image>
       -h [help]
 USAGE
 }
@@ -123,17 +132,18 @@ USAGE
 # TODO
 # Should probably go back to using while [ "$#" -gt 0 ]; do .. and shift
 # to get long options and flexibility, but I just wanted to try getopts out
-while getopts ":d:w:h:x:y:t:p:ul" opt; do
+while getopts ":d:w:h:x:y:t:p:b:ul" opt; do
     case "${opt}" in
-        d) declare -g download_dir="${OPTARG}" ;;
-        w) declare -ig min_width="${OPTARG}" ;;
-        h) declare -ig min_height="${OPTARG}" ;;
-        x) declare -ig max_width="${OPTARG}" ;;
-        y) declare -ig max_height="${OPTARG}" ;;
-        t) declare -ig thread_number="${OPTARG}" ;;
-        p) declare -ig page_number="${OPTARG}" ;;
-        u) curl_json ;; 
-        l) show_thread_list ;; 
+        d) download_dir="${OPTARG}" ;;
+        w) min_width="${OPTARG}" ;;
+        h) min_height="${OPTARG}" ;;
+        x) max_width="${OPTARG}" ;;
+        y) max_height="${OPTARG}" ;;
+        t) thread_number="${OPTARG}" ;;
+        p) page_number="${OPTARG}" ;;
+        b) bd="${OPTARG}" ;;
+        u) json=true ;; 
+        l) list=true ;; 
         \?) show_usage; exit 1 ;;
         :) echo "Option $OPTARG requires an argument" 1>&2 ;;
     esac
@@ -142,11 +152,13 @@ done
 [[ $OPTIND == 1 ]] && show_usage; 
 shift $((OPTIND-1))
 
-if [ ! -z $thread_number ]; then
-    curl_thread "$thread_number"
-fi
+main(){
+    set_board "$bd"
+    [ ! -z "$json" ] && curl_json
+    [ ! -z "$list" ] && show_thread_list
+    [ ! -z $thread_number ] && curl_thread "$thread_number"
+    [ ! -z $page_number ] && curl_page "$page_number"
+}
 
-if [ ! -z $page_number ]; then
-    curl_page "$page_number"
-fi
+main
 
