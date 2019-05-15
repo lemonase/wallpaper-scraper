@@ -3,7 +3,7 @@ A small script to download all images from a thread/page
 for any given board on 4chan.org (default board is /wg/)
 
 ## Requirements
-**curl** and **jq**
+**curl** and **jq** and paste
 
 ```
 Usage: paperscraper.sh
@@ -13,6 +13,7 @@ Usage: paperscraper.sh
       -t [arg]: <thread number to download> 
       -d [optional arg]: <specify directory for downloaded files (defaults to ~/Downloads/paperscraper)> 
       -b [optional arg]: <specify image board (defaults to /wg/)>
+      -s [optional arg]: <do not output filenames and progress>
       -w [optional arg]: <minimum width for image>
       -h [optional arg]: <minimum height for image>
       -x [optional arg]: <maximum width for image>

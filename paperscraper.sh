@@ -30,12 +30,10 @@ set_board(){
 }
 
 curl_json(){
-  curl -L "$catalog_url" -o "$catalog_json"
-  curl -L "$threads_url" -o "$threads_json"
+  curl -"$curl_opts"L  "$catalog_url" -o "$catalog_json"
+  curl -"$curl_opts"L  "$threads_url" -o "$threads_json"
 }
 
-# TODO Clean up this function 
-# TODO Add option to filter for image resolution
 curl_thread(){
   # Use this directory if not set
   [ -z "$download_dir" ] && download_dir="$HOME/Downloads/paperscraper"
@@ -47,10 +45,9 @@ curl_thread(){
   json_file="$thread_dir/$thread_number.json"
 
   # Download the thread's json data
-  if [ ! -f "$json_file" ]; then
-    curl "$url" -o "$json_file"
-  fi
+  [ ! -f "$json_file" ] && curl -"$curl_opts"L "$url" -o "$json_file"
 
+  # Does the image match width/height requirements
   if [ ! -z $min_width ]; then
     minw=$(jq --arg minw "$min_width" -c '.posts[].w >= ($minw | tonumber)' $json_file)
   fi
@@ -64,18 +61,21 @@ curl_thread(){
     maxh=$(jq --arg maxh "$max_height" -c '.posts[].h <= ($maxh | tonumber)' $json_file)
   fi
 
+  # Get the image data we need
   tim=$(jq '.posts[].tim' "$json_file" | sed 's/\s*//g')
   ext=$(jq '.posts[].ext' "$json_file" | sed 's/\"//g')
   w=$(jq '.posts[].w' "$json_file")
   h=$(jq '.posts[].h' "$json_file")
+
+  [[ "$curl_opts" != 's' ]] && curl_opts='#'
 
   # Download each file from the list
   while read line
   do
     file_base=$(echo "$line" | cut -d '/' -f 5)
     filename="$download_dir/$file_base"
-    echo "$filename"
-    [ -f "$filename" ] || curl -# "$line" -o "$filename"
+    [[ "$curl_opts" != 's' ]] && echo "$filename"
+    [ -f "$filename" ] || curl -"$curl_opts"L "$line" -o "$filename"
   done <  <(paste <(echo $minw | tr ' ' '\n')\
           <(echo $maxw | tr ' ' '\n')\
           <(echo $minh | tr ' ' '\n')\
@@ -121,6 +121,7 @@ Usage $0
       -t [arg]: <thread number to download> 
       -d [optional arg]: <specify directory for downloaded files (defaults to ~/Downloads/paperscraper)> 
       -b [optional arg]: <specify image board (defaults to /wg/)>
+      -s [optional arg]: <do not output filenames and progress>
       -w [optional arg]: <minimum width for image>
       -h [optional arg]: <minimum height for image>
       -x [optional arg]: <maximum width for image>
@@ -132,7 +133,7 @@ USAGE
 # TODO
 # Should probably go back to using while [ "$#" -gt 0 ]; do .. and shift
 # to get long options and flexibility, but I just wanted to try getopts out
-while getopts ":d:w:h:x:y:t:p:b:ul" opt; do
+while getopts ":d:w:h:x:y:t:p:sb:ul" opt; do
   case "${opt}" in
     d) download_dir="${OPTARG}" ;;
     w) min_width="${OPTARG}" ;;
@@ -142,6 +143,7 @@ while getopts ":d:w:h:x:y:t:p:b:ul" opt; do
     t) thread_number="${OPTARG}" ;;
     p) page_number="${OPTARG}" ;;
     b) bd="${OPTARG}" ;;
+    s) silent=true ;;
     u) json=true ;; 
     l) list=true ;; 
     \?) show_usage; exit 1 ;;
@@ -154,6 +156,12 @@ shift $((OPTIND-1))
 
 main(){
   set_board "$bd"
+  if [ ! -z "$silent" ]; then
+    declare -g curl_opts="s"
+  else
+    declare -g curl_opts=""
+  fi
+
   [ ! -z "$json" ] && curl_json
   [ ! -z "$list" ] && show_thread_list
   [ ! -z $thread_number ] && curl_thread "$thread_number"
