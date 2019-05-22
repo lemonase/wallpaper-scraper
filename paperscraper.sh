@@ -117,16 +117,15 @@ show_usage(){
 Usage $0
       -l <show list of threads> 
       -u <update catalog and threads> 
-      -p [arg]: <specify page to download>
-      -t [arg]: <thread number to download> 
-      -d [optional arg]: <specify directory for downloaded files (defaults to ~/Downloads/paperscraper)> 
-      -b [optional arg]: <specify image board (defaults to /wg/)>
-      -s [optional arg]: <do not output filenames and progress>
-      -w [optional arg]: <minimum width for image>
-      -h [optional arg]: <minimum height for image>
-      -x [optional arg]: <maximum width for image>
-      -y [optional arg]: <maximum height for image>
-      -h [help]
+      -s <silent mode>
+      -p [page number]: <specify page to download>
+      -t [thread number]: <thread number to download> 
+      -d [path/to/downloads]: <specify directory for downloaded files (defaults to ~/Downloads/paperscraper)> 
+      -b [board]: <specify image board (defaults to /wg/)>
+      -w [minimum width]: <minimum width for image>
+      -h [minimum height]: <minimum height for image>
+      -x [maximum width]: <maximum width for image>
+      -y [maximum height]: <maximum height for image>
 USAGE
 }
 
