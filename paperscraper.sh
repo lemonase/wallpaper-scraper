@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 
-if ! [ -x "$(command -v jq)" ]; then
-  printf "Error: jq is not installed.\n" >&2
-fi
-if ! [ -x "$(command -v curl)" ]; then
-  printf "Error: curl is not installed.\n" >&2
-fi
+[ ! -x "$(command -v jq)" ] && printf "Error: jq is not installed.\\n" >&2
+[ ! -x "$(command -v curl)" ] && printf "Error: curl is not installed.\\n" >&2
+[ ! -x "$(command -v cut)" ] && printf "Error: cut is not installed.\\n" >&2
+[ ! -x "$(command -v paste)" ] && printf "Error: paste is not installed.\\n" >&2
 
 set_board(){
   if [ ! -z "$1" ]; then
@@ -48,17 +46,17 @@ curl_thread(){
   [ ! -f "$json_file" ] && curl -"$curl_opts"L "$url" -o "$json_file"
 
   # Does the image match width/height requirements
-  if [ ! -z $min_width ]; then
-    minw=$(jq --arg minw "$min_width" -c '.posts[].w >= ($minw | tonumber)' $json_file)
+  if [ ! -z "$min_width" ]; then
+    minw=$(jq --arg minw "$min_width" -c '.posts[].w >= ($minw | tonumber)' "$json_file")
   fi
-  if [ ! -z $max_width ]; then
-    maxw=$(jq --arg maxw "$max_width" -c '.posts[].w <= ($maxw | tonumber)' $json_file)
+  if [ ! -z "$max_width" ]; then
+    maxw=$(jq --arg maxw "$max_width" -c '.posts[].w <= ($maxw | tonumber)' "$json_file")
   fi
-  if [ ! -z $min_height ]; then
-    minh=$(jq --arg minh "$min_height" -c '.posts[].h >= ($minh | tonumber)' $json_file)
+  if [ ! -z "$min_height" ]; then
+    minh=$(jq --arg minh "$min_height" -c '.posts[].h >= ($minh | tonumber)' "$json_file")
   fi
-  if [ ! -z $max_height ]; then
-    maxh=$(jq --arg maxh "$max_height" -c '.posts[].h <= ($maxh | tonumber)' $json_file)
+  if [ ! -z "$max_height" ]; then
+    maxh=$(jq --arg maxh "$max_height" -c '.posts[].h <= ($maxh | tonumber)' "$json_file")
   fi
 
   # Get the image data we need
@@ -70,16 +68,16 @@ curl_thread(){
   [[ "$curl_opts" != 's' ]] && curl_opts='#'
 
   # Download each file from the list
-  while read line
+  while read -r line
   do
     file_base=$(echo "$line" | cut -d '/' -f 5)
     filename="$download_dir/$file_base"
     [[ "$curl_opts" != 's' ]] && echo "$filename"
     [ -f "$filename" ] || curl -"$curl_opts"L "$line" -o "$filename"
-  done <  <(paste <(echo $minw | tr ' ' '\n')\
-          <(echo $maxw | tr ' ' '\n')\
-          <(echo $minh | tr ' ' '\n')\
-          <(echo $maxh | tr ' ' '\n')\
+  done <  <(paste <(echo "$minw" | tr ' ' '\n')\
+          <(echo "$maxw" | tr ' ' '\n')\
+          <(echo "$minh" | tr ' ' '\n')\
+          <(echo "$maxh" | tr ' ' '\n')\
           <(echo "$tim" | tr ' ' '\n')\
           <(echo "$ext" | tr ' ' '\n')\
           <(echo "$w" | tr ' ' '\n')\
@@ -91,10 +89,10 @@ curl_thread(){
 curl_page(){
   [ -f $catalog_json ] || curl_json
 
-  while read line 
+  while read -r line 
   do
-    curl_thread $line
-  done < <(jq '.['$page_number'].threads[].no' $catalog_json)
+    curl_thread "$line"
+  done < <(jq '.['$page_number'].threads[].no' "$catalog_json")
 }
 
 show_thread_list(){
@@ -163,8 +161,8 @@ main(){
 
   [ ! -z "$json" ] && curl_json
   [ ! -z "$list" ] && show_thread_list
-  [ ! -z $thread_number ] && curl_thread "$thread_number"
-  [ ! -z $page_number ] && curl_page "$page_number"
+  [ ! -z "$thread_number" ] && curl_thread "$thread_number"
+  [ ! -z "$page_number" ] && curl_page "$page_number"
 }
 
 main
