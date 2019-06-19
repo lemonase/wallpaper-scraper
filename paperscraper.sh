@@ -112,47 +112,49 @@ show_thread_list(){
 
 show_usage(){
   cat<<USAGE
-Usage $0
-      -l <show list of threads> 
-      -u <update catalog and threads> 
-      -s <silent mode>
-      -p [page number]: <specify page to download>
-      -t [thread number]: <thread number to download> 
-      -d [path/to/downloads]: <specify directory for downloaded files (defaults to ~/Downloads/paperscraper)> 
-      -b [board]: <specify image board (defaults to /wg/)>
-      -w [minimum width]: <minimum width for image>
-      -h [minimum height]: <minimum height for image>
-      -x [maximum width]: <maximum width for image>
-      -y [maximum height]: <maximum height for image>
+Usage: paperscraper.sh [-t thread_number] || [-p page_number] [--options]
+  Required arguments (either or)
+  -t,	--thread                  Thread number to download
+  -p,	--page                    Page number to download
+
+  Optional arguments 
+  -b,	--board                   Specify image board (/wg/ by default)
+  -d,	--dir, --download-dir     Destination dir for downloads (~/Downloads/paperscraper by default)
+  -minw, --min-width              Minimum width for images
+  -minh, --min-height             Minimum height for images
+  -maxw, --max-width              Maximum width for images
+  -maxh, --max-height             Maximum height for images
+  -1080, -1080p, --desktop        Minimum resolution of 1920x1080
+  -s,	--silent                  Silent mode
+  -l,	--list                    Outputs a list of threads
+  -u,	--update                  Updates list of threads
+  -h, --help                      Show this message
 USAGE
 }
 
-# TODO
-# Should probably go back to using while [ "$#" -gt 0 ]; do .. and shift
-# to get long options and flexibility, but I just wanted to try getopts out
-while getopts ":d:w:h:x:y:t:p:sb:ul" opt; do
-  case "${opt}" in
-    d) download_dir="${OPTARG}" ;;
-    w) min_width="${OPTARG}" ;;
-    h) min_height="${OPTARG}" ;;
-    x) max_width="${OPTARG}" ;;
-    y) max_height="${OPTARG}" ;;
-    t) thread_number="${OPTARG}" ;;
-    p) page_number="${OPTARG}" ;;
-    b) bd="${OPTARG}" ;;
-    s) silent=true ;;
-    u) json=true ;; 
-    l) list=true ;; 
-    \?) show_usage; exit 1 ;;
-    :) echo "Option $OPTARG requires an argument" 1>&2 ;;
+[ "$#" -eq 0 ] && show_usage
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -t|--thread) thread_number="$2"; shift 2;;
+    -p|--page) page_number="$2"; shift 2;;
+    -b|--board) chosen_board="$2";shift 2;;
+    -d|--dir|--download-dir) download_dir="$2"; shift 2;;
+    -minw|--min-width) min_width="$2"; shift 2;;
+    -minh|--min-height) min_height="$2"; shift 2;;
+    -maxw|--max-width) max_width="$2"; shift 2;;
+    -maxh|--max-height) max_height="$2"; shift 2;;
+    -1080|-1080p|--desktop) min_width=1920; min_height=1080; shift;;
+    -s|--silent) silent=true; shift ;;
+    -u|--update) json=true; shift;; 
+    -l|--list) list=true; shift;; 
+    -h|--help) show_usage; exit;;
+    -*) echo "Unknown option $1"; show_usage; exit 1;;
+    *) echo "Unknown option $1"; show_usage; exit 1;;
   esac
 done
 
-[[ $OPTIND == 1 ]] && show_usage; 
-shift $((OPTIND-1))
-
 main(){
-  set_board "$bd"
+  set_board "$chosen_board"
   if [ ! -z "$silent" ]; then
     declare -g curl_opts="s"
   else
