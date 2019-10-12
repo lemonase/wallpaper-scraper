@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-import pprint
 import requests
 
 # declare api variables
