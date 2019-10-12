@@ -2,8 +2,6 @@
 
 ## Scripts for bulk downloading wallpapers from various sources
 
----
-
 ### Providers Implemented
 
 - [x] [/wg/](https://4chan.org/wg/)
