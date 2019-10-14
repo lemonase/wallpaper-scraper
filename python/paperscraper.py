@@ -1,7 +1,7 @@
-from pathlib import Path
+import io
 import json
+from pathlib import Path
 import requests
-from PIL import Image
 
 # declare api variables
 board = "wg"
@@ -17,7 +17,7 @@ data_dir = Path("data")
 thread_dir = Path("data/threads/")
 catalog_json_file = Path("data/catalog.json")
 threads_json_file = Path("data/threads.json")
-images_dir = Path("data/images")
+images_dir = Path("data/images/")
 
 
 def make_dirs():
@@ -73,43 +73,86 @@ def download_thread_json(thread_number):
             thread_file.write(thread_json)
 
 
-def download_images(thread_number):
+def download_thread_images(thread_number):
     thread_file = get_thread_file(thread_number)
 
     # download the thread json if not already
     if not thread_file.is_file():
         download_thread_json(thread_number)
 
-    # TODO implement the rest of this
+    # read saved json for the thread
+    with thread_file.open("r", encoding="utf-8") as thread:
+        json_data = json.load(thread)
+        posts = json_data["posts"]
+
+        # iterate through posts in the thread
+        for post_num in range(len(posts)):
+            post = posts[post_num]
+            try:
+                # images have these attributes
+                tim = post["tim"]
+                ext = post["ext"]
+                width = post["w"]
+                height = post["h"]
+
+                # request image variables
+                image_url = image_endpoint + str(tim) + str(ext)
+                image_res = requests.get(image_url)
+                image_content = image_res.content
+
+                # local image variables
+                image_string = str(images_dir.absolute()) + \
+                    "\\" + str(tim) + str(ext)
+                image_file = Path(image_string)
+
+                # write to disk
+                print("Downloading to", image_string)
+                with image_file.open("wb") as im:
+                    im.write(image_content)
+
+            except KeyError:
+                # Not all replies are images
+                pass
 
 
 def print_catalog():
-    # open catalog json file. it is basically an array
-    # of the pages that are shown on 4ch
-    with catalog_json_file.open("r") as cf:
-        pages = json.load(cf)
+    # the catalog json is just an array of pages
+    with catalog_json_file.open("r") as cat_file:
+        pages = json.load(cat_file)
+
         # iterate through the pages
         for page_num in range(len(pages)):
+            # get page and threads from that page
             page = pages[page_num]
             threads = page["threads"]
-            print("--- PAGE ", page_num + 1, "---")
+            print("*** PAGE ", page_num + 1, "***")
+
             # iterate through the threads on each page
             for thread_num in range(len(threads)):
+                # get each thread
                 thread = threads[thread_num]
-                # not all threads have a title
-                # hence the try block
-                try:
-                    num = thread["no"]
-                    title = thread["com"]
-                    print(num, "  ", title)
-                except:
-                    print("No title")
 
+                # print the thread number
+                num = thread["no"]
+                print("---", "Thread:", num, "---")
+
+                # not all threads have a subject or comment
+                try:
+                    subject = thread["sub"]
+                    comment = thread["com"]
+
+                    print("Sub:", subject)
+                    print("Comment:", comment)
+                except KeyError:
+                    print("N/A")
+
+
+# TODO allow arguments like width, height, and location
 
 def main():
     make_dirs()
-    download_catalog_json()
-    # print_catalog()
+    print_catalog()
+    # download_thread_images(7454599)
 
 
 main()
