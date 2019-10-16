@@ -1,51 +1,62 @@
+#!/usr/bin/env python3
+import argparse
 import io
 import json
 from pathlib import Path
 import requests
 
-# declare api variables
-board = "wg"
-api_endpoint = "https://a.4cdn.org/" + board + "/"
-catalog_json_endpoint = api_endpoint + "catalog.json"
-thread_json_endpoint = api_endpoint + "threads.json"
-thread_endpoint = api_endpoint + "thread/"
-image_endpoint = "https://i.4cdn.org/" + board + "/"
+
+class Endpoints():
+    def __init__(self, board):
+        self.board = board
+        self.api_endpoint = "https://a.4cdn.org/" + self.board + "/"
+        self.image_endpoint = "https://i.4cdn.org/" + self.board + "/"
+        self.catalog_json_endpoint = api_endpoint + "catalog.json"
+        self.thread_json_endpoint = api_endpoint + "threads.json"
+        self.thread_endpoint = api_endpoint + "thread/"
+
+    def set_board(self, board):
+        self.board = board
 
 
-# declare path variables
-data_dir = Path("data")
-thread_dir = Path("data/threads/")
-catalog_json_file = Path("data/catalog.json")
-threads_json_file = Path("data/threads.json")
-images_dir = Path("data/images/")
+class Paths():
+    def __init__(self):
+        # declare path variables
+        self.thread_dir = Path("data/threads/")
+        self.images_dir = Path("data/images/")
+        self.catalog_json_file = Path("data/catalog.json")
+        self.threads_json_file = Path("data/threads.json")
+
+    def make_dirs(self):
+        if not self.thread_dir.is_dir():
+            self.thread_dir.mkdir(parents=True)
+
+        if not self.images_dir.is_dir():
+            self.images_dir.mkdir(parents=True)
 
 
-def make_dirs():
-    # create data_dir
-    if not data_dir.is_dir():
-        data_dir.mkdir()
+class Catalog():
+    def __init__(self):
+        pass
 
-    # create thread directory
-    if not thread_dir.is_dir():
-        thread_dir.mkdir()
 
-    # create images dir
-    if not images_dir.is_dir():
-        images_dir.mkdir()
+class Thread():
+    def __init__(self):
+        pass
+
+# TODO restructure the rest of the functions into classes
 
 
 def download_catalog_json():
-    # open and download catalog and json files if they don't exist
-    if not catalog_json_file.is_file():
-        with catalog_json_file.open("w") as json_file:
-            catalog_json = json.dumps(
-                requests.get(catalog_json_endpoint).json())
-            json_file.write(catalog_json)
-    if not threads_json_file.is_file():
-        with threads_json_file.open("w") as json_file:
-            threads_json = json.dumps(
-                requests.get(thread_json_endpoint).json())
-            json_file.write(threads_json)
+    with catalog_json_file.open("w") as json_file:
+        catalog_json = json.dumps(
+            requests.get(catalog_json_endpoint).json())
+        json_file.write(catalog_json)
+
+    with threads_json_file.open("w") as json_file:
+        threads_json = json.dumps(
+            requests.get(thread_json_endpoint).json())
+        json_file.write(threads_json)
 
 
 def get_thread_string(thread_number):
@@ -115,7 +126,10 @@ def download_thread_images(thread_number):
                 pass
 
 
-def print_catalog():
+def print_catalog(board):
+    # download catalog json
+    download_catalog_json()
+
     # the catalog json is just an array of pages
     with catalog_json_file.open("r") as cat_file:
         pages = json.load(cat_file)
@@ -147,12 +161,51 @@ def print_catalog():
                     print("N/A")
 
 
-# TODO allow arguments like width, height, and location
+def process_arguments():
+    parser = argparse.ArgumentParser(
+        description="Specify board, thread and image criteria")
+
+    parser.add_argument('-b', '--board', nargs=1,
+                        type=str, required=False, default='wg',
+                        help="Specify a board")
+
+    parser.add_argument('-p', '--print-catalog', action='store_true',
+                        help="Print out the catalog for a board")
+
+    parser.add_argument('-t', '--thread', nargs=1, type=int,
+                        required=False, help="Specify a thread number")
+
+    parser.add_argument('-minw', '--min-width', nargs=1, type=int,
+                        help="Specify the minimum width of the image")
+
+    parser.add_argument('-maxw', '--max-width', nargs=1, type=int,
+                        help="Specify the maximum width of the image")
+
+    parser.add_argument('-minh', '--min-height', nargs=1, type=int,
+                        help="Specify the minimum height of the image")
+
+    parser.add_argument('-maxh', '--max-height', nargs=1, type=int,
+                        help="Specify the maximum height of the image")
+
+    args = parser.parse_args()
+
+    if args.board:
+        set_endpoints(args.board)
+
+    if args.print_catalog:
+        print_catalog(args.board)
+
+    if args.thread:
+        download_thread_images(args.thread)
+
+    print(board)
+
 
 def main():
-    make_dirs()
-    print_catalog()
+    process_arguments()
+    # print_catalog()
     # download_thread_images(7454599)
 
 
-main()
+if __name__ == '__main__':
+    main()
