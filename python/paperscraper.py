@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
 import argparse
-import io
 import json
 import requests
 
@@ -23,6 +22,9 @@ class Catalog():
         self.file = Path(self.file_string)
 
     def download_json(self):
+        """
+        Download catalog json data
+        """
         # make the path dir if it doesn't exist
         if not self.path.is_dir():
             self.path.mkdir(parents=True)
@@ -36,6 +38,10 @@ class Catalog():
                 print("Error fetching json: ", error)
 
     def print_catalog(self):
+        """
+        Display all the posts on the first page of a board
+        """
+
         # first download the json for the catalog
         self.download_json()
 
@@ -80,19 +86,19 @@ class Thread():
     Holds data and methods regarding threads
     """
 
-    def __init__(self, board, id):
+    def __init__(self, board, thread_id):
         # required
         self.board = board
-        self.id = id
+        self.thread_id = thread_id
         self.thread_prefix = "https://a.4cdn.org/" + self.board + "/thread/"
 
         # paths
         self.path_string = "data/threads/"
         self.path = Path(self.path_string)
-        self.images_path = Path("data/images/" + str(id))
+        self.images_path = Path("data/images/" + str(thread_id))
 
         # files
-        self.filename = str(id) + ".json"
+        self.filename = str(thread_id) + ".json"
         self.file_string = self.path_string + self.filename
         self.file = Path(self.file_string)
 
@@ -106,6 +112,9 @@ class Thread():
         self.min_height = 0
 
     def download_json(self):
+        """
+        Download the json for a thread
+        """
         # create directories for threads and images if they don't exist
         if not self.path.is_dir():
             self.path.mkdir(parents=True)
@@ -121,6 +130,9 @@ class Thread():
                 print("Error fetching json: ", error)
 
     def download_images(self):
+        """
+        Download the images from a thread
+        """
         # download the json for the thread
         self.download_json()
 
@@ -181,7 +193,9 @@ class Thread():
 
 
 def get_arguments():
-    # argparse function that takes care of various arguments and options
+    """
+    Handle possible arguments
+    """
 
     parser = argparse.ArgumentParser(
         description="Specify board, thread and image criteria")
@@ -212,6 +226,9 @@ def get_arguments():
 
 
 def process_arguments(args):
+    """
+    Dispatches actions based on arguments
+    """
     # take action from arguments
 
     # handle board arg
@@ -255,10 +272,11 @@ def process_arguments(args):
     else:
         print("Error: No board specified")
 
-    # TODO implement image size filtering
-
 
 def main():
+    """
+    Start here
+    """
     args = get_arguments()
     process_arguments(args)
 
