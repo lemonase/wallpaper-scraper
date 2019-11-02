@@ -86,19 +86,24 @@ class Thread():
         self.id = id
         self.thread_prefix = "https://a.4cdn.org/" + self.board + "/thread/"
 
-        # endpoints
-        self.endpoint = self.thread_prefix + self.filename
-        self.images_endpoint = "https://i.4cdn.org/" + self.board + "/"
-
         # paths
         self.path_string = "data/threads/"
         self.path = Path(self.path_string)
         self.images_path = Path("data/images/" + str(id))
 
-        # file
+        # files
         self.filename = str(id) + ".json"
         self.file_string = self.path_string + self.filename
         self.file = Path(self.file_string)
+
+        # endpoints
+        self.endpoint = self.thread_prefix + self.filename
+        self.images_endpoint = "https://i.4cdn.org/" + self.board + "/"
+
+        self.max_width = 0
+        self.max_height = 0
+        self.min_width = 0
+        self.min_height = 0
 
     def download_json(self):
         # create directories for threads and images if they don't exist
@@ -114,7 +119,6 @@ class Thread():
                 json_file.write(json_data)
             except json.JSONDecodeError as error:
                 print("Error fetching json: ", error)
-
 
     def download_images(self):
         # download the json for the thread
@@ -141,24 +145,36 @@ class Thread():
                     ext = post["ext"]
                     width = post["w"]
                     height = post["h"]
+                    desired_size = True
 
                     # filename consists of "tim.ext"
                     image_filename = str(tim) + str(ext)
 
-                    # request image variables
-                    image_url = self.images_endpoint + image_filename
-                    image_res = requests.get(image_url)
-                    image_content = image_res.content
+                    # choose if the image is the desired size
+                    if self.max_height != 0 and self.max_height <= height:
+                        desired_size = False
+                    if self.max_width != 0 and self.max_width <= width:
+                        desired_size = False
+                    if self.min_height != 0 and self.min_height >= height:
+                        desired_size = False
+                    if self.min_width != 0 and self.min_width >= width:
+                        desired_size = False
 
-                    # local image variables
-                    image_string = str(self.images_path.absolute()) + \
-                        "\\" + image_filename
-                    image_file = Path(image_string)
+                    if desired_size:
+                        # request image variables
+                        image_url = self.images_endpoint + image_filename
+                        image_res = requests.get(image_url)
+                        image_content = image_res.content
 
-                    # write to disk
-                    print("Downloading", image_url, "to", image_string)
-                    with image_file.open("wb") as im_file:
-                        im_file.write(image_content)
+                        # local image variables
+                        image_string = str(self.images_path.absolute()) + \
+                            "\\" + image_filename
+                        image_file = Path(image_string)
+
+                        # write to disk
+                        print("Downloading", image_url, "to", image_string)
+                        with image_file.open("wb") as im_file:
+                            im_file.write(image_content)
 
                 except KeyError:
                     pass
@@ -198,9 +214,9 @@ def get_arguments():
 def process_arguments(args):
     # take action from arguments
 
-    # a board must be specified
+    # handle board arg
     if args.board:
-        # convert board to a string
+        # convert board from list to a string
         board = "".join(args.board)
 
         # create catalog object for the board
@@ -209,11 +225,31 @@ def process_arguments(args):
         # request the json
         catalog.download_json()
 
+        # handle thread arg
         if args.thread:
+
+            # iterate through thread args
             for thread_id in args.thread:
+                # make a thread object
                 thread = Thread(board, thread_id)
+
+                # turn args into thread attributes
+                if args.min_height is not None:
+                    thread.min_height = args.min_height[0]
+
+                if args.min_width is not None:
+                    thread.min_width = args.min_width[0]
+
+                if args.max_height is not None:
+                    thread.max_height = args.max_height[0]
+
+                if args.max_width is not None:
+                    thread.max_width = args.max_width[0]
+
+                # download the images for the thread
                 thread.download_images()
 
+        # handle print arg
         if args.print_catalog:
             catalog.print_catalog()
     else:
