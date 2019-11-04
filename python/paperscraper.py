@@ -3,6 +3,7 @@ from pathlib import Path
 import argparse
 import json
 import requests
+import sys
 
 
 class Catalog():
@@ -113,10 +114,13 @@ class Thread():
         self.uhd = False
 
         # exact resolution
-        self.max_width = 0
-        self.max_height = 0
+        self.max_width = sys.maxsize
+        self.max_height = sys.maxsize
         self.min_width = 0
         self.min_height = 0
+
+        # verbose flag
+        self.verbose = False
 
     def download_json(self):
         """
@@ -164,7 +168,7 @@ class Thread():
                     ext = post["ext"]
                     width = post["w"]
                     height = post["h"]
-                    desired_size = True
+                    desired_size = False
 
                     # filename consists of "tim.ext"
                     image_filename = str(tim) + str(ext)
@@ -173,33 +177,21 @@ class Thread():
                     if self.sd:
                         self.min_width = 720
                         self.min_height = 480
-                        self.max_width = 0
-                        self.max_height = 0
                     if self.hd:
                         self.min_width = 1280
                         self.min_height = 720
-                        self.max_width = 0
-                        self.max_height = 0
                     if self.fhd:
                         self.min_width = 1920
                         self.min_height = 1080
-                        self.max_width = 0
-                        self.max_height = 0
                     if self.uhd:
                         self.min_width = 3840
                         self.min_height = 2160
-                        self.max_width = 0
-                        self.max_height = 0
 
                     # choose if the image is the desired size
-                    if self.max_height != 0 and self.max_height <= height:
-                        desired_size = False
-                    if self.max_width != 0 and self.max_width <= width:
-                        desired_size = False
-                    if self.min_height != 0 and self.min_height >= height:
-                        desired_size = False
-                    if self.min_width != 0 and self.min_width >= width:
-                        desired_size = False
+                    if height <= self.max_height and height >= self.min_height:
+                        desired_size = True
+                    if width <= self.max_width and width >= self.min_width:
+                        desired_size = True
 
                     if desired_size:
                         try:
@@ -214,11 +206,13 @@ class Thread():
                             image_file = Path(image_string)
 
                             # write to disk
-                            print("Downloading", image_url, "to", image_string)
+                            if self.verbose:
+                                print("Downloading", image_url, "to", image_string,
+                                      "with a resolution of", width, "x", height)
                             with image_file.open("wb") as im_file:
                                 im_file.write(image_content)
                         except KeyboardInterrupt:
-                            exit()
+                            sys.exit(1)
 
                 except KeyError:
                     pass
@@ -232,39 +226,42 @@ def get_arguments():
     parser = argparse.ArgumentParser(
         description="Specify board, thread and image criteria")
 
-    parser.add_argument('-b', '--board', nargs=1,
-                        type=str, required=True, default='wg',
+    parser.add_argument("-b", "--board", nargs=1,
+                        type=str, required=True, default="wg",
                         help="Specify a board (ex: wg)")
 
-    parser.add_argument('-p', '--print-catalog', action='store_true',
+    parser.add_argument("-p", "--print-catalog", action="store_true",
                         help="Print out the catalog for a board")
 
-    parser.add_argument('-t', '--thread', nargs=1, type=int,
+    parser.add_argument("-t", "--thread", nargs=1, type=int,
                         required=False, help="Specify a thread number")
 
-    parser.add_argument('-sd', '--standard-definition', action='store_true',
+    parser.add_argument("-sd", "--standard-definition", action="store_true",
                         help="Sets minimum resolution to 720x480")
 
-    parser.add_argument('-hd', '--high-definition', action='store_true',
+    parser.add_argument("-hd", "--high-definition", action="store_true",
                         help="Sets minimum resolution to 1280x720")
 
-    parser.add_argument('-fhd', '--full-high-definition', action='store_true',
+    parser.add_argument("-fhd", "--full-high-definition", action="store_true",
                         help="Sets minimum resolution to 1920x1080")
 
-    parser.add_argument('-uhd', '--ultra-high-definition', action='store_true',
+    parser.add_argument("-uhd", "--ultra-high-definition", action="store_true",
                         help="Sets minimum resolution to 3840x2160")
 
-    parser.add_argument('-minw', '--min-width', nargs=1, type=int,
+    parser.add_argument("-minw", "--min-width", nargs=1, type=int,
                         help="Specify the minimum width of the image")
 
-    parser.add_argument('-maxw', '--max-width', nargs=1, type=int,
+    parser.add_argument("-maxw", "--max-width", nargs=1, type=int,
                         help="Specify the maximum width of the image")
 
-    parser.add_argument('-minh', '--min-height', nargs=1, type=int,
+    parser.add_argument("-minh", "--min-height", nargs=1, type=int,
                         help="Specify the minimum height of the image")
 
-    parser.add_argument('-maxh', '--max-height', nargs=1, type=int,
+    parser.add_argument("-maxh", "--max-height", nargs=1, type=int,
                         help="Specify the maximum height of the image")
+
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="Output the names of all files downloaded")
 
     return parser.parse_args()
 
@@ -316,6 +313,9 @@ def process_arguments(args):
 
                     if args.max_width is not None:
                         thread.max_width = args.max_width[0]
+
+                # verbosity
+                thread.verbose = args.verbose
 
                 # download the images for the thread
                 thread.download_images()
