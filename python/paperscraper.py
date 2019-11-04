@@ -100,6 +100,13 @@ class Thread():
         self.endpoint = self.thread_prefix + self.filename
         self.images_endpoint = "https://i.4cdn.org/" + self.board + "/"
 
+        # general resolutions
+        self.sd = False
+        self.hd = False
+        self.fhd = False
+        self.uhd = False
+
+        # exact resolution
         self.max_width = 0
         self.max_height = 0
         self.min_width = 0
@@ -150,6 +157,28 @@ class Thread():
                     # filename consists of "tim.ext"
                     image_filename = str(tim) + str(ext)
 
+                    # set resolution based on bool arguments
+                    if self.sd:
+                        self.min_width = 720
+                        self.min_height = 480
+                        self.max_width = 0
+                        self.max_height = 0
+                    if self.hd:
+                        self.min_width = 1280
+                        self.min_height = 720
+                        self.max_width = 0
+                        self.max_height = 0
+                    if self.fhd:
+                        self.min_width = 1920
+                        self.min_height = 1080
+                        self.max_width = 0
+                        self.max_height = 0
+                    if self.uhd:
+                        self.min_width = 3840
+                        self.min_height = 2160
+                        self.max_width = 0
+                        self.max_height = 0
+
                     # choose if the image is the desired size
                     if self.max_height != 0 and self.max_height <= height:
                         desired_size = False
@@ -161,20 +190,23 @@ class Thread():
                         desired_size = False
 
                     if desired_size:
-                        # request image variables
-                        image_url = self.images_endpoint + image_filename
-                        image_res = requests.get(image_url)
-                        image_content = image_res.content
+                        try:
+                            # request image variables
+                            image_url = self.images_endpoint + image_filename
+                            image_res = requests.get(image_url)
+                            image_content = image_res.content
 
-                        # local image variables
-                        image_string = str(self.images_path.absolute()) + \
-                            "\\" + image_filename
-                        image_file = Path(image_string)
+                            # local image variables
+                            image_string = str(self.images_path.absolute()) + \
+                                "\\" + image_filename
+                            image_file = Path(image_string)
 
-                        # write to disk
-                        print("Downloading", image_url, "to", image_string)
-                        with image_file.open("wb") as im_file:
-                            im_file.write(image_content)
+                            # write to disk
+                            print("Downloading", image_url, "to", image_string)
+                            with image_file.open("wb") as im_file:
+                                im_file.write(image_content)
+                        except KeyboardInterrupt:
+                            exit()
 
                 except KeyError:
                     pass
@@ -195,6 +227,18 @@ def get_arguments():
 
     parser.add_argument('-t', '--thread', nargs=1, type=int,
                         required=False, help="Specify a thread number")
+
+    parser.add_argument('-sd', '--standard-definition', action='store_true',
+                        help="Sets minimum resolution to 720x480")
+
+    parser.add_argument('-hd', '--high-definition', action='store_true',
+                        help="Sets minimum resolution to 1280x720")
+
+    parser.add_argument('-fhd', '--full-high-definition', action='store_true',
+                        help="Sets minimum resolution to 1920x1080")
+
+    parser.add_argument('-uhd', '--ultra-high-definition', action='store_true',
+                        help="Sets minimum resolution to 3840x2160")
 
     parser.add_argument('-minw', '--min-width', nargs=1, type=int,
                         help="Specify the minimum width of the image")
@@ -233,18 +277,28 @@ def process_arguments(args):
                 # make a thread object
                 thread = Thread(board, thread_id)
 
-                # turn args into thread attributes
-                if args.min_height is not None:
-                    thread.min_height = args.min_height[0]
+                # general resolution arguments
+                if args.standard_definition:
+                    thread.sd = args.standard_definition
+                if args.high_definition:
+                    thread.hd = args.high_definition
+                if args.full_high_definition:
+                    thread.fhd = args.full_high_definition
+                if args.ultra_high_definition:
+                    thread.uhd = args.ultra_high_definition
+                # exact resolution arguments
+                else:
+                    if args.min_height is not None:
+                        thread.min_height = args.min_height[0]
 
-                if args.min_width is not None:
-                    thread.min_width = args.min_width[0]
+                    if args.min_width is not None:
+                        thread.min_width = args.min_width[0]
 
-                if args.max_height is not None:
-                    thread.max_height = args.max_height[0]
+                    if args.max_height is not None:
+                        thread.max_height = args.max_height[0]
 
-                if args.max_width is not None:
-                    thread.max_width = args.max_width[0]
+                    if args.max_width is not None:
+                        thread.max_width = args.max_width[0]
 
                 # download the images for the thread
                 thread.download_images()
