@@ -187,10 +187,9 @@ class Thread():
                         self.min_width = 3840
                         self.min_height = 2160
 
-                    # choose if the image is the desired size
-                    if height <= self.max_height and height >= self.min_height:
-                        desired_size = True
-                    if width <= self.max_width and width >= self.min_width:
+                    # check if the image is the desired size
+                    if (height <= self.max_height and height >= self.min_height) \
+                            and (width <= self.max_width and width >= self.min_width):
                         desired_size = True
 
                     if desired_size:
