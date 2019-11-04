@@ -206,8 +206,8 @@ class Thread():
 
                             # write to disk
                             if self.verbose:
-                                print("Downloading", image_url, "to", image_string,
-                                      "with a resolution of", width, "x", height)
+                                print("Downloading", image_url, "to", image_string, "from thread",
+                                      self.thread_id, "with a resolution of", width, "x", height)
                             with image_file.open("wb") as im_file:
                                 im_file.write(image_content)
                         except KeyboardInterrupt:
