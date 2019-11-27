@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 from pathlib import Path
 import argparse
 import json
@@ -10,9 +11,8 @@ class Catalog():
     """
     Holds all the data and regarding catalogs
     """
-
     def __init__(self, board):
-        # required
+        # required parameters
         self.board = board
         self.endpoint = "https://a.4cdn.org/" + self.board + "/catalog.json"
 
@@ -86,7 +86,6 @@ class Thread():
     """
     Holds data and methods regarding threads
     """
-
     def __init__(self, board, thread_id):
         # required
         self.board = board
@@ -206,8 +205,10 @@ class Thread():
 
                             # write to disk
                             if self.verbose:
-                                print("Downloading", image_url, "to", image_string, "from thread",
-                                      self.thread_id, "with a resolution of", width, "x", height)
+                                print("Downloading", image_url, "to",
+                                      image_string, "from thread",
+                                      self.thread_id, "with a resolution of",
+                                      width, "x", height)
                             with image_file.open("wb") as im_file:
                                 im_file.write(image_content)
                         except KeyboardInterrupt:
@@ -221,45 +222,75 @@ def get_arguments():
     """
     Handle possible arguments
     """
-
     parser = argparse.ArgumentParser(
         description="Specify board, thread and image criteria")
-
-    parser.add_argument("-b", "--board", nargs=1,
-                        type=str, required=True, default="wg",
+    parser.add_argument("-b",
+                        "--board",
+                        nargs=1,
+                        type=str,
+                        required=True,
+                        default="wg",
                         help="Specify a board (ex: wg)")
 
-    parser.add_argument("-p", "--print-catalog", action="store_true",
+    parser.add_argument("-p",
+                        "--print-catalog",
+                        action="store_true",
                         help="Print out the catalog for a board")
 
-    parser.add_argument("-t", "--thread", nargs=1, type=int,
-                        required=False, help="Specify a thread number")
+    parser.add_argument("-t",
+                        "--thread",
+                        nargs=1,
+                        type=int,
+                        required=False,
+                        help="Specify a thread number")
 
-    parser.add_argument("-sd", "--standard-definition", action="store_true",
+    parser.add_argument("-sd",
+                        "--standard-definition",
+                        action="store_true",
                         help="Sets minimum resolution to 720x480")
 
-    parser.add_argument("-hd", "--high-definition", action="store_true",
+    parser.add_argument("-hd",
+                        "--high-definition",
+                        action="store_true",
                         help="Sets minimum resolution to 1280x720")
 
-    parser.add_argument("-fhd", "--full-high-definition", action="store_true",
+    parser.add_argument("-fhd",
+                        "--full-high-definition",
+                        action="store_true",
                         help="Sets minimum resolution to 1920x1080")
 
-    parser.add_argument("-uhd", "--ultra-high-definition", action="store_true",
+    parser.add_argument("-uhd",
+                        "--ultra-high-definition",
+                        action="store_true",
                         help="Sets minimum resolution to 3840x2160")
 
-    parser.add_argument("-minw", "--min-width", nargs=1, type=int,
+    parser.add_argument("-minw",
+                        "--min-width",
+                        nargs=1,
+                        type=int,
                         help="Specify the minimum width of the image")
 
-    parser.add_argument("-maxw", "--max-width", nargs=1, type=int,
+    parser.add_argument("-maxw",
+                        "--max-width",
+                        nargs=1,
+                        type=int,
                         help="Specify the maximum width of the image")
 
-    parser.add_argument("-minh", "--min-height", nargs=1, type=int,
+    parser.add_argument("-minh",
+                        "--min-height",
+                        nargs=1,
+                        type=int,
                         help="Specify the minimum height of the image")
 
-    parser.add_argument("-maxh", "--max-height", nargs=1, type=int,
+    parser.add_argument("-maxh",
+                        "--max-height",
+                        nargs=1,
+                        type=int,
                         help="Specify the maximum height of the image")
 
-    parser.add_argument("-v", "--verbose", action="store_true",
+    parser.add_argument("-v",
+                        "--verbose",
+                        action="store_true",
                         help="Output the names of all files downloaded")
 
     return parser.parse_args()
