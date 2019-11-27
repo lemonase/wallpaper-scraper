@@ -222,8 +222,10 @@ def get_arguments():
     """
     Handle possible arguments
     """
+
     parser = argparse.ArgumentParser(
         description="Specify board, thread and image criteria")
+
     parser.add_argument("-b",
                         "--board",
                         nargs=1,
