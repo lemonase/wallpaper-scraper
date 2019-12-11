@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 
+# check for required programs
 [ ! -x "$(command -v jq)" ] && printf "Error: jq is not installed.\\n" >&2
 [ ! -x "$(command -v curl)" ] && printf "Error: curl is not installed.\\n" >&2
 [ ! -x "$(command -v cut)" ] && printf "Error: cut is not installed.\\n" >&2
 [ ! -x "$(command -v paste)" ] && printf "Error: paste is not installed.\\n" >&2
 
+# defaults to "wg" and sets api endpoints
 set_board(){
   if [ ! -z "$1" ]; then
     declare -g board="$1"
@@ -27,11 +29,13 @@ set_board(){
   [ -d "$thread_dir" ] || mkdir -p "$thread_dir" 
 }
 
+# download thread and catalog json for a board
 curl_json(){
   curl -"$curl_opts"L  "$catalog_url" -o "$catalog_json"
   curl -"$curl_opts"L  "$threads_url" -o "$threads_json"
 }
 
+# download the images from a thread
 curl_thread(){
   # Use this directory if not set
   [ -z "$download_dir" ] && download_dir="$HOME/Downloads/paperscraper"
@@ -86,6 +90,7 @@ curl_thread(){
           | cut -f5,6 | sed 's/\s*//g' | sed 's|^|https://i.4cdn.org/'${board}'/|')
 }
 
+# download an entire page
 curl_page(){
   [ -f $catalog_json ] || curl_json
 
@@ -95,6 +100,7 @@ curl_page(){
   done < <(jq '.['$page_number'].threads[].no' "$catalog_json")
 }
 
+# output catalog
 show_thread_list(){
   if [ ! -f $threads_json ] || [ ! -f $catalog_json ]; then
     curl_json
