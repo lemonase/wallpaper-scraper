@@ -5,7 +5,7 @@ on any given board on 4chan.org (default board is /wg/)
 
 ## Requirements
 
-You will need
+You will need:
 **curl**, **jq**, **cut** and **paste**
 
 ```man
