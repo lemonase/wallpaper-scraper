@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 from pathlib import Path
 import argparse
 import json
@@ -11,6 +10,7 @@ class Catalog():
     """
     Holds all the data and regarding catalogs
     """
+
     def __init__(self, board):
         # required parameters
         self.board = board
@@ -86,6 +86,7 @@ class Thread():
     """
     Holds data and methods regarding threads
     """
+
     def __init__(self, board, thread_id):
         # required
         self.board = board
@@ -143,6 +144,7 @@ class Thread():
         """
         Download the images from a thread
         """
+
         # download the json for the thread
         self.download_json()
 
@@ -302,6 +304,7 @@ def process_arguments(args):
     """
     Dispatches actions based on arguments
     """
+
     # take action from arguments
 
     # handle board arg
@@ -363,6 +366,7 @@ def main():
     """
     Start here
     """
+
     args = get_arguments()
     process_arguments(args)
 
