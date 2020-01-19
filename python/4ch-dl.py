@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-from pathlib import Path
 import argparse
 import json
-import requests
 import sys
+from pathlib import Path
+
+import requests
 
 
 class Catalog():
@@ -25,7 +26,6 @@ class Catalog():
         """
         Download catalog json data
         """
-
         # make the path dir if it doesn't exist
         if not self.path.is_dir():
             self.path.mkdir(parents=True)
@@ -42,7 +42,6 @@ class Catalog():
         """
         Display all the posts on the first page of a board
         """
-
         # first download the json for the catalog
         self.download_json()
 
@@ -125,7 +124,6 @@ class Thread():
         """
         Download the json for a thread
         """
-
         # create directories for threads and images if they don't exist
         if not self.path.is_dir():
             self.path.mkdir(parents=True)
@@ -144,7 +142,6 @@ class Thread():
         """
         Download the images from a thread
         """
-
         # download the json for the thread
         self.download_json()
 
@@ -225,7 +222,6 @@ def get_arguments():
     """
     Handle possible arguments
     """
-
     parser = argparse.ArgumentParser(
         description="Specify board, thread and image criteria")
 
@@ -305,7 +301,6 @@ def process_arguments(args):
     """
     Dispatches actions based on arguments
     """
-
     # take action from arguments
 
     # handle board arg
@@ -367,7 +362,6 @@ def main():
     """
     Start here
     """
-
     args = get_arguments()
     process_arguments(args)
 
