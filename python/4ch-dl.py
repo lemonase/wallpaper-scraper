@@ -10,7 +10,6 @@ class Catalog():
     """
     Holds all the data and regarding catalogs
     """
-
     def __init__(self, board):
         # required parameters
         self.board = board
@@ -26,6 +25,7 @@ class Catalog():
         """
         Download catalog json data
         """
+
         # make the path dir if it doesn't exist
         if not self.path.is_dir():
             self.path.mkdir(parents=True)
@@ -86,7 +86,6 @@ class Thread():
     """
     Holds data and methods regarding threads
     """
-
     def __init__(self, board, thread_id):
         # required
         self.board = board
@@ -126,6 +125,7 @@ class Thread():
         """
         Download the json for a thread
         """
+
         # create directories for threads and images if they don't exist
         if not self.path.is_dir():
             self.path.mkdir(parents=True)
@@ -189,8 +189,9 @@ class Thread():
                         self.min_height = 2160
 
                     # check if the image is the desired size
-                    if (height <= self.max_height and height >= self.min_height) \
-                            and (width <= self.max_width and width >= self.min_width):
+                    if (height <= self.max_height and height >= self.min_height
+                        ) and (width <= self.max_width
+                               and width >= self.min_width):
                         desired_size = True
 
                     if desired_size:
